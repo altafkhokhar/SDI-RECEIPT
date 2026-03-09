@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Receipt Generator — Sunni Dawat e Islami</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(145deg, #0a1f10 0%, #1a4a2e 60%, #0a1f10 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.45);
+      padding: 38px 42px 34px;
+      width: 100%;
+      max-width: 510px;
+    }
+
+    .card-header {
+      text-align: center;
+      margin-bottom: 28px;
+      padding-bottom: 22px;
+      border-bottom: 2px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+    .card-header img { height: 60px; }
+    .card-header-text h1 { font-size: 1.15rem; font-weight: 800; color: #0f2318; text-align:left; }
+    .card-header-text p  { font-size: 0.76rem; color: #6b7280; margin-top: 3px; text-align:left; }
+
+    .field { margin-bottom: 16px; }
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #374151;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    label .req { color: #dc2626; font-size: 0.85rem; }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.8px solid #e5e7eb;
+      border-radius: 9px;
+      font-size: 0.93rem;
+      color: #111827;
+      background: #f9fafb;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #1a4a2e;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(26,74,46,0.1);
+    }
+    input.error, select.error { border-color: #dc2626; background: #fff5f5; }
+    input[readonly] {
+      background: #f0fdf4;
+      border-color: #86efac;
+      color: #166534;
+      font-style: italic;
+      cursor: default;
+    }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .divider { height: 1px; background: #e5e7eb; margin: 20px 0; }
+
+    .receipt-no-display {
+      background: #f0fdf4;
+      border: 1.5px dashed #86efac;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      color: #166534;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #1a4a2e, #2d7a4f);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.4px;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 14px rgba(26,74,46,0.35);
+      margin-top: 6px;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(26,74,46,0.45); }
+    .btn:active { transform: translateY(0); }
+
+    .note { text-align: center; font-size: 0.74rem; color: #9ca3af; margin-top: 12px; }
+
+    .err-msg { font-size: 0.72rem; color: #dc2626; margin-top: 4px; display: none; }
+    .err-msg.show { display: block; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="card-header">
+    <!-- Logo loaded from same folder as this HTML file -->
+    <img src="D:\Altaf\Frozen Code\Product Ideas\Receipt Generator\SDI LOGO.png" alt="Sunni Dawat e Islami Logo" onerror="this.style.display='none'" />
+    <div class="card-header-text">
+      <h1>SUNNI DAWAT E ISLAMI</h1>
+      <p>Receipt Generator — Bhavnagar Branch</p>
+    </div>
+  </div>
+
+  <div class="row-2">
+    <div class="field">
+      <label>Date <span class="req">*</span></label>
+      <input type="date" id="receiptDate" onchange="updateReceiptNo()" />
+      <div class="err-msg" id="err-date">Date is required.</div>
+    </div>
+    <div class="field">
+      <label>Receipt No.</label>
+      <div class="receipt-no-display" id="receiptNoDisplay">—</div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Full Name <span class="req">*</span></label>
+    <input type="text" id="name" placeholder="Enter donor's full name" />
+    <div class="err-msg" id="err-name">Name is required.</div>
+  </div>
+
+  <div class="row-2">
+    <div class="field">
+      <label>Category <span class="req">*</span></label>
+      <select id="category">
+        <option value="LILLAH">LILLAH</option>
+        <option value="ZAKAT">ZAKAT</option>
+        <option value="SADQA">SADQA</option>
+        <option value="IMDAD">IMDAD</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Payment Type <span class="req">*</span></label>
+      <select id="payType">
+        <option value="">— Select —</option>
+        <option value="CASH">CASH</option>
+        <option value="CHEQUE">CHEQUE</option>
+        <option value="ONLINE">ONLINE</option>
+      </select>
+      <div class="err-msg" id="err-paytype">Payment type is required.</div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Amount (Rs.) <span class="req">*</span></label>
+    <input type="number" id="amountNum" placeholder="e.g. 5000" min="1" oninput="autoWords()" />
+    <div class="err-msg" id="err-amount">Valid amount is required.</div>
+  </div>
+
+  <div class="field">
+    <label>Amount in Words <span style="font-size:0.68rem;color:#6b7280;text-transform:none;font-weight:400;">(auto-filled)</span></label>
+    <input type="text" id="amountWords" readonly placeholder="Auto-generated after amount entry" />
+  </div>
+
+  <div class="field">
+    <label>Received By <span class="req">*</span></label>
+    <input type="text" id="receivedBy" placeholder="Receiver's name" />
+    <div class="err-msg" id="err-receiver">Received By is required.</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <button class="btn" id="genBtn" onclick="generateReceipt()">⬇ Generate &amp; Download Receipt PDF</button>
+  <p class="note">PDF size: A5 — 148 × 210 mm (exactly half of A4) · ready to print</p>
+</div>
+
+<script>
+// ── Number → Words (Indian system) ───────────────────────────────
+const ones = ['','ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','EIGHT','NINE',
+               'TEN','ELEVEN','TWELVE','THIRTEEN','FOURTEEN','FIFTEEN','SIXTEEN',
+               'SEVENTEEN','EIGHTEEN','NINETEEN'];
+const tens  = ['','','TWENTY','THIRTY','FORTY','FIFTY','SIXTY','SEVENTY','EIGHTY','NINETY'];
+
+function below1000(n) {
+  if (n === 0) return '';
+  if (n < 20)  return ones[n] + ' ';
+  if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? ' '+ones[n%10] : '') + ' ';
+  return ones[Math.floor(n/100)] + ' HUNDRED ' + below1000(n%100);
+}
+function numToWords(n) {
+  n = Math.floor(Number(n));
+  if (!n || n <= 0) return '';
+  let r = '';
+  if (n >= 10000000) { r += below1000(Math.floor(n/10000000)) + 'CRORE ';    n %= 10000000; }
+  if (n >= 100000)   { r += below1000(Math.floor(n/100000))   + 'LAKH ';     n %= 100000;   }
+  if (n >= 1000)     { r += below1000(Math.floor(n/1000))     + 'THOUSAND '; n %= 1000;     }
+  r += below1000(n);
+  return r.trim() + ' ONLY';
+}
+function autoWords() {
+  const v = document.getElementById('amountNum').value;
+  document.getElementById('amountWords').value = v ? numToWords(v) : '';
+}
+
+// ── Receipt No from date ──────────────────────────────────────────
+function buildReceiptNo(dateVal) {
+  if (!dateVal) return '—';
+  const [y, m, d] = dateVal.split('-');
+  const ts = Date.now().toString().slice(-4);
+  return `SDI-${y.slice(2)}${m}${d}-${ts}`;
+}
+function updateReceiptNo() {
+  const v = document.getElementById('receiptDate').value;
+  document.getElementById('receiptNoDisplay').textContent = buildReceiptNo(v);
+}
+const todayStr = new Date().toISOString().split('T')[0];
+document.getElementById('receiptDate').value = todayStr;
+updateReceiptNo();
+
+function fmtDate(v) {
+  if (!v) return '';
+  const [y,m,d] = v.split('-');
+  return `${d} / ${m} / ${y}`;
+}
+
+// ── Validation ────────────────────────────────────────────────────
+function validate() {
+  let ok = true;
+  const checks = [
+    { id:'receiptDate', err:'err-date',    test: v => v !== '' },
+    { id:'name',        err:'err-name',    test: v => v.trim() !== '' },
+    { id:'payType',     err:'err-paytype', test: v => v !== '' },
+    { id:'amountNum',   err:'err-amount',  test: v => v !== '' && Number(v) > 0 },
+    { id:'receivedBy',  err:'err-receiver',test: v => v.trim() !== '' },
+  ];
+  checks.forEach(({id, err, test}) => {
+    const el  = document.getElementById(id);
+    const msg = document.getElementById(err);
+    if (!test(el.value)) { el.classList.add('error');    msg && msg.classList.add('show');    ok = false; }
+    else                 { el.classList.remove('error'); msg && msg.classList.remove('show'); }
+  });
+  return ok;
+}
+
+// ── Load logo from same folder via canvas (converts to base64) ────
+function loadLogoFromPage() {
+  return new Promise((resolve) => {
+    const img = document.querySelector('.card-header img');
+    if (!img || !img.complete || img.naturalWidth === 0) {
+      resolve(null);
+      return;
+    }
+    try {
+      const c = document.createElement('canvas');
+      c.width  = img.naturalWidth;
+      c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      resolve(c.toDataURL('image/png'));
+    } catch(e) {
+      resolve(null);
+    }
+  });
+}
+
+// ── Generate PDF ──────────────────────────────────────────────────
+async function generateReceipt() {
+  if (!validate()) return;
+
+  const { jsPDF } = window.jspdf;
+
+  const dateVal     = document.getElementById('receiptDate').value;
+  const receiptNo   = document.getElementById('receiptNoDisplay').textContent;
+  const name        = document.getElementById('name').value.trim();
+  const category    = document.getElementById('category').value;
+  const payType     = document.getElementById('payType').value;
+  const amountNum   = document.getElementById('amountNum').value.trim();
+  const amountWords = document.getElementById('amountWords').value.trim();
+  const receivedBy  = document.getElementById('receivedBy').value.trim();
+  const dateDisplay = fmtDate(dateVal);
+
+  // Load logo that is already displayed in the page header
+  const logoDataURL = await loadLogoFromPage();
+
+  // A5 portrait = 148 × 210 mm  (exactly half of A4 portrait)
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' });
+  const W  = 148;
+  const H  = 110;
+  const mg = 11;
+  const cw = W - mg * 2;
+  
+  const coreContentSize =7;
+
+  // ── Double border ──
+  doc.setDrawColor(26, 74, 46);
+  doc.setLineWidth(1.0);
+  doc.rect(5, 5, W-10, H-10);
+  doc.setLineWidth(0.25);
+  doc.rect(7.5, 7.5, W-15, H-15);
+
+  // ── Header band ──
+  const hTop = 8;
+  const hH   = 28;
+  doc.setFillColor(237, 247, 241);
+  doc.rect(7.5, hTop, W-15, hH, 'F');
+
+  // WAQF note
+  doc.setFontSize(6.5);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(110, 110, 110);
+  doc.text('WAQF BOARD (REG. NO: 023)', W/2, hTop + 4.5, { align: 'center' });
+
+  // Logo — placed from logo.png in same folder, no drawings
+  const logoH = hH - 7;
+  const logoW = logoH;
+  const logoX = mg - 1;
+  const logoY = hTop + 3.5;
+  if (logoDataURL) {
+    doc.addImage(logoDataURL, 'PNG', logoX, logoY, logoW, logoH);
+  }
+
+  // Header text right of logo
+  const txtStartX = logoX + logoW + 4;
+  const txtCX     = txtStartX + (W - mg - txtStartX) / 2;
+
+  doc.setFontSize(9.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(10, 55, 30);
+  doc.text('SUNNI DAWAT E ISLAMI', txtCX, hTop + 11, { align: 'center' });
+
+  doc.setFontSize(6);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(20, 80, 45);
+  doc.text('BHAVNAGAR BRANCH', txtCX, hTop + 14, { align: 'center' });
+
+  doc.setFontSize(6.8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(75, 75, 75);
+  doc.text('ISLAMIYAT INSTITUTE, NEAR K.G.N. MASJID',   txtCX, hTop + 19, { align: 'center' });
+  doc.text('JAMNAKUND ROAD, BHAVNAGAR - GUJARAT. PHONE: 0278 2427886',        txtCX, hTop + 24, { align: 'center' });
+  //doc.text('PHONE: 0278 2427886',                        txtCX, hTop + 33, { align: 'center' });
+
+  // Header bottom rule
+  doc.setDrawColor(26, 74, 46);
+  doc.setLineWidth(0.7);
+  doc.line(7.5, hTop + hH, W - 7.5, hTop + hH);
+
+  // ── RECEIPT title ──
+  let y = hTop + hH + 4;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(10, 55, 30);
+  doc.text('RECEIPT', W/2, y, { align: 'center' });
+
+  <!-- y += 3; -->
+  <!-- doc.setLineWidth(0.25); -->
+  <!-- doc.setDrawColor(190, 190, 190); -->
+  <!-- doc.line(mg, y, W-mg, y); -->
+  y += 7; 
+
+  // ── Date & Receipt No (same line) ──
+  doc.setFontSize(coreContentSize);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(50, 50, 50);
+  doc.text(`DATE : ${dateDisplay}`, mg, y);
+  doc.text(`RECEIPT NO : ${receiptNo}`, W-mg, y, { align: 'right' });
+  y += 7;
+
+
+  // ── Name ──
+  doc.setFontSize(coreContentSize);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 40);
+  doc.text('NAME :', mg, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text(name, mg + 18, y);
+  y += 2.5;
+  doc.setLineWidth(0.3);
+  doc.setDrawColor(150, 150, 150);
+  doc.line(mg + 18, y, W-mg, y);
+  y += 7;
+
+  // ── Category / payment line ──
+  doc.setFontSize(coreContentSize);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(40, 40, 40);
+  doc.text('RECEIVED AMOUNT FROM YOU BY SUNNI DAWAT E ISLAMI - BHAVNAGAR', mg, y);
+  y += 6;
+
+  const line2 = `AS  ${category}  [${payType}]   Rs. `;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(coreContentSize);
+  doc.text(line2, mg, y);
+  const pfxW = doc.getTextWidth(line2);
+  doc.setLineWidth(0.35);
+  doc.setDrawColor(80, 80, 80);
+  doc.line(mg + pfxW, y + 0.5, W - mg, y + 0.5);
+  doc.setFont('helvetica', 'normal');
+  doc.text(amountNum, mg + pfxW + 2, y);
+  y += 5;
+
+  // ── Amount in words ──
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(coreContentSize);
+  doc.setTextColor(40, 40, 40);
+  doc.text('AMOUNT IN WORDS :', mg, y);
+  y += 5.5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(coreContentSize);
+  const wordLines = doc.splitTextToSize(amountWords, cw - 4);
+  wordLines.forEach(line => { doc.text(line, mg + 2, y); y += 5.2; });
+  doc.setLineWidth(0.3);
+  doc.setDrawColor(150, 150, 150);
+  doc.line(mg, y - 2.5, W-mg, y - 2.5);
+  y += 6;
+
+  
+
+  // Received By — half-length signature line
+  doc.setFontSize(7.8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(50, 50, 50);
+  doc.text('RECEIVED BY :', W-mg, y - 4, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(10, 80, 40);
+  doc.text(receivedBy, W-mg, y + 2.5, { align: 'right' });
+  doc.setLineWidth(0.3);
+  doc.setDrawColor(130, 130, 130);
+  doc.line(W - mg - 28, y + 5, W - mg, y + 5);
+  //y += 15;
+
+  // ── Green separator ──
+
+  // ── Bank details — compact, small fonts ──
+  const bankRows = [
+    ['NAME',      'SUNNI DAWATE ISLAMI BHAVNAGAR'],
+    ['A/C NO',    '0071104000325134'],
+    ['IFSC CODE', 'IBKL0000071'],
+    ['BANK NAME', 'IDBI BANK - BHAVNAGAR'],
+  ];
+  const rowH  = 4.8;
+  const bBoxH = 6 + bankRows.length * rowH + 3;
+  doc.setFillColor(243, 251, 245);
+  doc.setDrawColor(26, 74, 46);
+  doc.setLineWidth(0.4);
+  const bankDetailBoxWidth = 70;
+  const bankDetailBoxHt = 14;
+  doc.rect(mg, y-5, bankDetailBoxWidth, bankDetailBoxHt, 'FD');
+
+  <!-- doc.setFontSize(4); -->
+  <!-- doc.setFont('helvetica', 'bold'); -->
+  <!-- doc.setTextColor(10, 60, 30); -->
+  <!-- doc.text('BANK DETAILS', W/2, y + 5, { align: 'center' }); -->
+  <!-- doc.setLineWidth(0.2); -->
+  <!-- doc.line(mg + 4, y + 6, W-mg-4, y + 6); -->
+
+  let by = y -2;
+  bankRows.forEach(([lbl, val]) => {
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(55, 55, 55);
+    doc.text(`${lbl} :`, mg + 3, by);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 30, 30);
+    doc.text(val, mg + 26, by);
+    by += 3;
+  });
+
+  // ── Footer ──
+  doc.setFontSize(6);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(170, 170, 170);
+  doc.text('This is a computer-generated receipt.', W/2, H - 9, { align: 'center' });
+
+  doc.save(`Receipt_${receiptNo}.pdf`);
+}
+</script>
+</body>
+</html>
