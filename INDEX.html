@@ -126,7 +126,7 @@
 <div class="card">
   <div class="card-header">
     <!-- Logo loaded from same folder as this HTML file -->
-    <img src="D:\Altaf\Frozen Code\Product Ideas\Receipt Generator\SDI LOGO.png" alt="Sunni Dawat e Islami Logo" onerror="this.style.display='none'" />
+    <!-- <img src="D:\Altaf\Frozen Code\Product Ideas\Receipt Generator\SDI LOGO.png" alt="Sunni Dawat e Islami Logo" onerror="this.style.display='none'" /> -->
     <div class="card-header-text">
       <h1>SUNNI DAWAT E ISLAMI</h1>
       <p>Receipt Generator — Bhavnagar Branch</p>
@@ -138,13 +138,31 @@
       <label>Date <span class="req">*</span></label>
       <input type="date" id="receiptDate" onchange="updateReceiptNo()" />
       <div class="err-msg" id="err-date">Date is required.</div>
-    </div>
-    <div class="field">
+    </div>    
+  </div>
+  
+  <div class="field">
       <label>Receipt No.</label>
       <div class="receipt-no-display" id="receiptNoDisplay">—</div>
-    </div>
   </div>
-
+  
+  
+  
+  <div class="row-2">
+  
+	<div class="field">
+      <label>Mobile<span class="req">*</span></label>
+      <input type=text  id="mobileNumber" placeholder="Enter mobile number"/>
+	  <div class="err-msg" id="err-name">Mobile number is required.</div>
+	</div>
+  
+	<div class="field">
+      <label>City<span class="req">*</span></label>
+      <input type=text  id="city"/>
+	  <div class="err-msg" id="err-name">City is required.</div>
+  </div>
+  </div>
+  
   <div class="field">
     <label>Full Name <span class="req">*</span></label>
     <input type="text" id="name" placeholder="Enter donor's full name" />
@@ -229,7 +247,7 @@ function buildReceiptNo(dateVal) {
   if (!dateVal) return '—';
   const [y, m, d] = dateVal.split('-');
   const ts = Date.now().toString().slice(-4);
-  return `SDI-${y.slice(2)}${m}${d}-${ts}`;
+  return `SDI-BHV${y.slice(2)}${m}${d}${ts}`;
 }
 function updateReceiptNo() {
   const v = document.getElementById('receiptDate').value;
