@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Receipt Generator — Sunni Dawat e Islami</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="D:\Altaf\Frozen Code\Product Ideas\Receipt Generator\google-sheet-snippet.js"> </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -126,7 +127,7 @@
 <div class="card">
   <div class="card-header">
     <!-- Logo loaded from same folder as this HTML file -->
-    <img src="D:\Altaf\Frozen Code\Product Ideas\Receipt Generator\SDI LOGO.png" alt="Sunni Dawat e Islami Logo" onerror="this.style.display='none'" />
+    <!-- <img src="D:\Altaf\Frozen Code\Product Ideas\Receipt Generator\SDI LOGO.png" alt="Sunni Dawat e Islami Logo" onerror="this.style.display='none'" /> -->
     <div class="card-header-text">
       <h1>SUNNI DAWAT E ISLAMI</h1>
       <p>Receipt Generator — Bhavnagar Branch</p>
@@ -138,13 +139,31 @@
       <label>Date <span class="req">*</span></label>
       <input type="date" id="receiptDate" onchange="updateReceiptNo()" />
       <div class="err-msg" id="err-date">Date is required.</div>
-    </div>
-    <div class="field">
+    </div>    
+  </div>
+  
+  <div class="field">
       <label>Receipt No.</label>
       <div class="receipt-no-display" id="receiptNoDisplay">—</div>
-    </div>
   </div>
-
+  
+  
+  
+  <div class="row-2">
+  
+	<div class="field">
+      <label>Mobile<span class="req">*</span></label>
+      <input type=text  id="mobileNumber" placeholder="Enter mobile number"/>
+	  <div class="err-msg" id="err-mobileNumber">Mobile number is required.</div>
+	</div>
+  
+	<div class="field">
+      <label>City<span class="req">*</span></label>
+      <input type=text  id="city"/>
+	  <div class="err-msg" id="err-city">City is required.</div>
+  </div>
+  </div>
+  
   <div class="field">
     <label>Full Name <span class="req">*</span></label>
     <input type="text" id="name" placeholder="Enter donor's full name" />
@@ -229,7 +248,7 @@ function buildReceiptNo(dateVal) {
   if (!dateVal) return '—';
   const [y, m, d] = dateVal.split('-');
   const ts = Date.now().toString().slice(-4);
-  return `SDI-${y.slice(2)}${m}${d}-${ts}`;
+  return `SDI-BHV${y.slice(2)}${m}${d}${ts}`;
 }
 function updateReceiptNo() {
   const v = document.getElementById('receiptDate').value;
@@ -251,6 +270,8 @@ function validate() {
   const checks = [
     { id:'receiptDate', err:'err-date',    test: v => v !== '' },
     { id:'name',        err:'err-name',    test: v => v.trim() !== '' },
+	{ id:'city',        err:'err-city',    test: v => v.trim() !== '' },
+	{ id:'mobileNumber', err:'err-mobileNumber',    test: v => v.trim() !== '' },
     { id:'payType',     err:'err-paytype', test: v => v !== '' },
     { id:'amountNum',   err:'err-amount',  test: v => v !== '' && Number(v) > 0 },
     { id:'receivedBy',  err:'err-receiver',test: v => v.trim() !== '' },
@@ -267,38 +288,61 @@ function validate() {
 // ── Load logo from same folder via canvas (converts to base64) ────
 function loadLogoFromPage() {
   return new Promise((resolve) => {
-    const img = document.querySelector('.card-header img');
-    if (!img || !img.complete || img.naturalWidth === 0) {
+    const img    = new Image();
+    img.src      = 'logo.png';
+    img.onload   = function () {
+      try {
+        const c   = document.createElement('canvas');
+        c.width   = img.naturalWidth;
+        c.height  = img.naturalHeight;
+        c.getContext('2d').drawImage(img, 0, 0);
+        resolve(c.toDataURL('image/png'));
+      } catch (e) {
+        resolve(null);
+      }
+    };
+    img.onerror  = function () {
+      console.warn('⚠️ logo.png not found. Make sure logo.png is in the same folder as this HTML file.');
       resolve(null);
-      return;
-    }
-    try {
-      const c = document.createElement('canvas');
-      c.width  = img.naturalWidth;
-      c.height = img.naturalHeight;
-      c.getContext('2d').drawImage(img, 0, 0);
-      resolve(c.toDataURL('image/png'));
-    } catch(e) {
-      resolve(null);
-    }
+    };
   });
 }
 
 // ── Generate PDF ──────────────────────────────────────────────────
 async function generateReceipt() {
   if (!validate()) return;
+  
+    // 1. Save to sheet FIRST
+	const btn     = document.getElementById('genBtn');	
+	
+    btn.disabled    = true;
+    btn.textContent = '⏳ Saving...';
 
   const { jsPDF } = window.jspdf;
 
   const dateVal     = document.getElementById('receiptDate').value;
   const receiptNo   = document.getElementById('receiptNoDisplay').textContent;
   const name        = document.getElementById('name').value.trim();
+  
+  const mobileNumber= document.getElementById('mobileNumber').value.trim();
+  const city        = document.getElementById('city').value.trim();  
+  
   const category    = document.getElementById('category').value;
   const payType     = document.getElementById('payType').value;
   const amountNum   = document.getElementById('amountNum').value.trim();
   const amountWords = document.getElementById('amountWords').value.trim();
   const receivedBy  = document.getElementById('receivedBy').value.trim();
   const dateDisplay = fmtDate(dateVal);
+
+
+	
+	 const result = await saveToGoogleSheet(
+      receiptNo, dateDisplay, name,mobileNumber, city,
+      category, payType, amountNum,
+      amountWords, receivedBy
+    );
+	
+	if (result == false)  return;
 
   // Load logo that is already displayed in the page header
   const logoDataURL = await loadLogoFromPage();
@@ -336,29 +380,32 @@ async function generateReceipt() {
   const logoW = logoH;
   const logoX = mg - 1;
   const logoY = hTop + 3.5;
-  if (logoDataURL) {
-    doc.addImage(logoDataURL, 'PNG', logoX, logoY, logoW, logoH);
-  }
+  <!-- if (logoDataURL) { -->
+  
+    <!-- doc.addImage(logoDataURL, 'PNG', logoX, logoY, logoW, logoH); -->
+  <!-- } -->
 
   // Header text right of logo
-  const txtStartX = logoX + logoW + 4;
-  const txtCX     = txtStartX + (W - mg - txtStartX) / 2;
+  <!-- const txtStartX = logoX + logoW + 4; -->
+  <!-- const txtCX     = txtStartX + (W - mg - txtStartX) / 2; -->
+  
+  const txtCX     =  (W - mg - 4) / 2; 
 
   doc.setFontSize(9.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(10, 55, 30);
-  doc.text('SUNNI DAWAT E ISLAMI', txtCX, hTop + 11, { align: 'center' });
+  doc.text('SUNNI DAWAT E ISLAMI', W/2, hTop + 11, { align: 'center' });
 
   doc.setFontSize(6);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(20, 80, 45);
-  doc.text('BHAVNAGAR BRANCH', txtCX, hTop + 14, { align: 'center' });
+  doc.text('BHAVNAGAR BRANCH', W/2, hTop + 14, { align: 'center' });
 
   doc.setFontSize(6.8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(75, 75, 75);
-  doc.text('ISLAMIYAT INSTITUTE, NEAR K.G.N. MASJID',   txtCX, hTop + 19, { align: 'center' });
-  doc.text('JAMNAKUND ROAD, BHAVNAGAR - GUJARAT. PHONE: 0278 2427886',        txtCX, hTop + 24, { align: 'center' });
+  doc.text('ISLAMIYAT INSTITUTE, NEAR K.G.N. MASJID',   W/2, hTop + 19, { align: 'center' });
+  doc.text('JAMNAKUND ROAD, BHAVNAGAR - GUJARAT. PHONE: 0278 2427886',        W/2, hTop + 22, { align: 'center' });
   //doc.text('PHONE: 0278 2427886',                        txtCX, hTop + 33, { align: 'center' });
 
   // Header bottom rule
@@ -367,11 +414,11 @@ async function generateReceipt() {
   doc.line(7.5, hTop + hH, W - 7.5, hTop + hH);
 
   // ── RECEIPT title ──
-  let y = hTop + hH + 4;
+  let y = hTop + hH + 6;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(10, 55, 30);
-  doc.text('RECEIPT', W/2, y, { align: 'center' });
+  doc.text('RECEIPT', W/2, y , { align: 'center' });
 
   <!-- y += 3; -->
   <!-- doc.setLineWidth(0.25); -->
@@ -390,22 +437,30 @@ async function generateReceipt() {
 
   // ── Name ──
   doc.setFontSize(coreContentSize);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('helvetica', 'normal');
   doc.setTextColor(40, 40, 40);
   doc.text('NAME :', mg, y);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('helvetica', 'bold');
   doc.text(name, mg + 18, y);
+  
   y += 2.5;
   doc.setLineWidth(0.3);
   doc.setDrawColor(150, 150, 150);
   doc.line(mg + 18, y, W-mg, y);
+  
   y += 7;
-
   // ── Category / payment line ──
   doc.setFontSize(coreContentSize);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(40, 40, 40);
   doc.text('RECEIVED AMOUNT FROM YOU BY SUNNI DAWAT E ISLAMI - BHAVNAGAR', mg, y);
+  y += 6;
+
+
+  doc.setFontSize(coreContentSize);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(40, 40, 40);
+  doc.text('Mobile No : '+ mobileNumber + '   , City : ' + city, mg, y);
   y += 6;
 
   const line2 = `AS  ${category}  [${payType}]   Rs. `;
@@ -416,26 +471,31 @@ async function generateReceipt() {
   doc.setLineWidth(0.35);
   doc.setDrawColor(80, 80, 80);
   doc.line(mg + pfxW, y + 0.5, W - mg, y + 0.5);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('helvetica', 'bold');
   doc.text(amountNum, mg + pfxW + 2, y);
+  
   y += 5;
 
   // ── Amount in words ──
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(coreContentSize);
   doc.setTextColor(40, 40, 40);
   doc.text('AMOUNT IN WORDS :', mg, y);
-  y += 5.5;
-  doc.setFont('helvetica', 'normal');
+  
+  
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(coreContentSize);
   const wordLines = doc.splitTextToSize(amountWords, cw - 4);
-  wordLines.forEach(line => { doc.text(line, mg + 2, y); y += 5.2; });
-  doc.setLineWidth(0.3);
-  doc.setDrawColor(150, 150, 150);
-  doc.line(mg, y - 2.5, W-mg, y - 2.5);
-  y += 6;
-
   
+  const inWordsY = mg + 25;
+  
+  wordLines.forEach(line => { doc.text(line, inWordsY + 2, y);    });
+  
+  <!-- doc.setLineWidth(0.3); -->
+  <!-- doc.setDrawColor(150, 150, 150); -->
+  <!-- doc.line(mg, y - 2.5, W-mg, y - 2.5); -->
+  
+  y += 6; 
 
   // Received By — half-length signature line
   doc.setFontSize(7.8);
@@ -466,8 +526,8 @@ async function generateReceipt() {
   doc.setDrawColor(26, 74, 46);
   doc.setLineWidth(0.4);
   const bankDetailBoxWidth = 70;
-  const bankDetailBoxHt = 14;
-  doc.rect(mg, y-5, bankDetailBoxWidth, bankDetailBoxHt, 'FD');
+  const bankDetailBoxHt = 13;
+  doc.rect(mg, y-3, bankDetailBoxWidth, bankDetailBoxHt, 'FD');
 
   <!-- doc.setFontSize(4); -->
   <!-- doc.setFont('helvetica', 'bold'); -->
@@ -476,7 +536,7 @@ async function generateReceipt() {
   <!-- doc.setLineWidth(0.2); -->
   <!-- doc.line(mg + 4, y + 6, W-mg-4, y + 6); -->
 
-  let by = y -2;
+  let by = y;
   bankRows.forEach(([lbl, val]) => {
     doc.setFontSize(6.5);
     doc.setFont('helvetica', 'normal');
@@ -495,7 +555,11 @@ async function generateReceipt() {
   doc.text('This is a computer-generated receipt.', W/2, H - 9, { align: 'center' });
 
   doc.save(`Receipt_${receiptNo}.pdf`);
+  
+  btn.disabled    = false;
+  btn.textContent = '⬇ Generate & Download Receipt PDF';
 }
+
 </script>
 </body>
 </html>
