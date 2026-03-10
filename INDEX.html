@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Receipt Generator — Sunni Dawat e Islami</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="D:\Altaf\Frozen Code\Product Ideas\Receipt Generator\google-sheet-snippet.js"> </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -310,6 +311,12 @@ function loadLogoFromPage() {
 // ── Generate PDF ──────────────────────────────────────────────────
 async function generateReceipt() {
   if (!validate()) return;
+  
+    // 1. Save to sheet FIRST
+	const btn     = document.getElementById('genBtn');	
+	
+    btn.disabled    = true;
+    btn.textContent = '⏳ Saving...';
 
   const { jsPDF } = window.jspdf;
 
@@ -326,6 +333,16 @@ async function generateReceipt() {
   const amountWords = document.getElementById('amountWords').value.trim();
   const receivedBy  = document.getElementById('receivedBy').value.trim();
   const dateDisplay = fmtDate(dateVal);
+
+
+	
+	 const result = await saveToGoogleSheet(
+      receiptNo, dateDisplay, name,mobileNumber, city,
+      category, payType, amountNum,
+      amountWords, receivedBy
+    );
+	
+	if (result == false)  return;
 
   // Load logo that is already displayed in the page header
   const logoDataURL = await loadLogoFromPage();
@@ -538,7 +555,11 @@ async function generateReceipt() {
   doc.text('This is a computer-generated receipt.', W/2, H - 9, { align: 'center' });
 
   doc.save(`Receipt_${receiptNo}.pdf`);
+  
+  btn.disabled    = false;
+  btn.textContent = '⬇ Generate & Download Receipt PDF';
 }
+
 </script>
 </body>
 </html>
