@@ -420,10 +420,10 @@ async function generateReceipt() {
 
   // ── Name ──
   doc.setFontSize(coreContentSize);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('helvetica', 'normal');
   doc.setTextColor(40, 40, 40);
   doc.text('NAME :', mg, y);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('helvetica', 'bold');
   doc.text(name, mg + 18, y);
   
   y += 2.5;
@@ -454,19 +454,19 @@ async function generateReceipt() {
   doc.setLineWidth(0.35);
   doc.setDrawColor(80, 80, 80);
   doc.line(mg + pfxW, y + 0.5, W - mg, y + 0.5);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('helvetica', 'bold');
   doc.text(amountNum, mg + pfxW + 2, y);
   
   y += 5;
 
   // ── Amount in words ──
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(coreContentSize);
   doc.setTextColor(40, 40, 40);
   doc.text('AMOUNT IN WORDS :', mg, y);
   
   
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(coreContentSize);
   const wordLines = doc.splitTextToSize(amountWords, cw - 4);
   
